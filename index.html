@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pixi Slot Machine</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://pixijs.download/release/pixi.min.js"></script>
+  <script>
+    const app = new PIXI.Application({
+      width: 600,
+      height: 400,
+      backgroundColor: 0x222222
+    });
+    document.body.appendChild(app.view);
+
+    const REEL_WIDTH = 160;
+    const SYMBOL_SIZE = 150;
+    const SYMBOLS = ['🍒', '🍋', '🍊', '💎'];
+
+    class Reel {
+      constructor(x, y) {
+        this.container = new PIXI.Container();
+        this.container.x = x;
+        this.container.y = y;
+        this.symbols = [];
+
+        for (let i = 0; i < 3; i++) {
+          const symbol = new PIXI.Text('', { fontSize: 72 });
+          symbol.anchor.set(0.5);
+          symbol.y = i * SYMBOL_SIZE;
+          this.container.addChild(symbol);
+          this.symbols.push(symbol);
+        }
+
+        this.updateSymbols();
+      }
+
+      updateSymbols() {
+        for (let i = 0; i < this.symbols.length; i++) {
+          const rand = Math.floor(Math.random() * SYMBOLS.length);
+          this.symbols[i].text = SYMBOLS[rand];
+        }
+      }
+
+      spin(delay = 0) {
+        return new Promise((resolve) => {
+          const duration = 1000 + delay;
+          const start = Date.now();
+          const animate = () => {
+            const now = Date.now();
+            const elapsed = now - start;
+
+            for (let i = 0; i < this.symbols.length; i++) {
+              this.symbols[i].y += 25;
+              if (this.symbols[i].y > SYMBOL_SIZE * 2) {
+                this.symbols[i].y = -SYMBOL_SIZE;
+                const rand = Math.floor(Math.random() * SYMBOLS.length);
+                this.symbols[i].text = SYMBOLS[rand];
+              }
+            }
+
+            if (elapsed < duration) {
+              requestAnimationFrame(animate);
+            } else {
+              this.updateSymbols();
+              resolve();
+            }
+          };
+
+          animate();
+        });
+      }
+    }
+
+    // Create 3 reels
+    const reels = [];
+    for (let i = 0; i < 3; i++) {
+      const reel = new Reel(80 + i * REEL_WIDTH, 60);
+      app.stage.addChild(reel.container);
+      reels.push(reel);
+    }
+
+    // Create Spin Button
+    const spinButton = new PIXI.Text('SPIN', {
+      fontSize: 36,
+      fill: 0xffffff,
+      backgroundColor: 0x000000
+    });
+    spinButton.interactive = true;
+    spinButton.buttonMode = true;
+    spinButton.x = app.view.width / 2 - spinButton.width / 2;
+    spinButton.y = 320;
+
+    spinButton.on('pointerdown', async () => {
+      spinButton.text = '...';
+      for (let i = 0; i < reels.length; i++) {
+        await reels[i].spin(i * 300); // slight delay between reels
+      }
+      spinButton.text = 'SPIN';
+    });
+
+    app.stage.addChild(spinButton);
+  </script>
+</body>
+</html>
